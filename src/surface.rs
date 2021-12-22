@@ -22,6 +22,10 @@ impl Default for HitRecord {
 }
 
 impl HitRecord {
+    pub fn new() {
+        Default::default()
+    }
+
     pub fn set_face_normal(&mut self, r: &Ray, outward_normal: Vector3<f32>) {
         self.front_face = r.direction.dot(&outward_normal) < 0.0;
         self.normal = if self.front_face {

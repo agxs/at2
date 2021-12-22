@@ -1,12 +1,14 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+mod camera;
 mod ray_ext;
 mod sphere;
 mod surface;
 mod utilities;
 mod world;
 
+use crate::camera::Camera;
 use crate::surface::{HittableList, Sphere};
 use crate::world::World;
 use bvh::nalgebra::Vector3;
@@ -46,20 +48,11 @@ fn main() -> Result<(), Error> {
 
     let viewport_height = 2.0;
     let viewport_width = ASPECT_RATIO * viewport_height;
-    let focal_length = 1.0;
-    let origin = Point3::new(0.0, 0.0, 0.0);
-    let horizontal = Vector3::new(viewport_width, 0.0, 0.0);
-    let vertical = Vector3::new(0.0, -viewport_height, 0.0);
-    let lower_left_corner =
-        origin - (horizontal * 0.5) - (vertical * 0.5) - Vector3::new(0.0, 0.0, focal_length);
-    let world = World {
-        origin,
-        horizontal,
-        vertical,
-        lower_left_corner,
-    };
+    let samples_per_pixel = 5;
+    let camera = Camera::new();
+    let world = World { samples_per_pixel };
 
-    let world_objects = HittableList {
+    let objects = HittableList {
         objects: vec![
             Box::new(Sphere {
                 center: Point3::new(0.0, 0.0, -1.0),
@@ -72,10 +65,10 @@ fn main() -> Result<(), Error> {
         ],
     };
 
+    let mut render_done = false;
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
-            world.draw(pixels.get_frame(), &world_objects);
             if pixels
                 .render()
                 .map_err(|e| error!("pixels.render() failed: {}", e))
@@ -101,6 +94,11 @@ fn main() -> Result<(), Error> {
 
             // Update internal state and request a redraw
             window.request_redraw();
+        }
+
+        if !render_done {
+            world.draw(pixels.get_frame(), &camera, &objects);
+            render_done = true;
         }
     });
 }

@@ -1,61 +1,47 @@
 use crate::ray_ext::RayExt;
 use crate::sphere::hit_sphere;
 use crate::surface::{HitRecord, Hittable, HittableList};
-use crate::{HEIGHT, WIDTH};
+use crate::utilities::clamp;
+use crate::{Camera, HEIGHT, WIDTH};
 use bvh::nalgebra::Point3;
 use bvh::nalgebra::Vector3;
 use bvh::ray::Ray;
+use rand::Rng;
 use std::f32::INFINITY;
 
 pub struct World {
-    pub origin: Point3<f32>,
-    pub horizontal: Vector3<f32>,
-    pub vertical: Vector3<f32>,
-    pub lower_left_corner: Point3<f32>,
+    pub samples_per_pixel: i32,
 }
 
 impl World {
     /// Draw the `World` state to the frame buffer.
     ///
     /// Assumes the default texture format: [`wgpu::TextureFormat::Rgba8UnormSrgb`]
-    pub fn draw(&self, frame: &mut [u8], world: &HittableList) {
+    pub fn draw(&self, frame: &mut [u8], camera: &Camera, objects: &HittableList) {
+        let mut rng = rand::thread_rng();
+
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let x = (i % WIDTH as usize) as i16;
-            let y = (i / WIDTH as usize) as i16;
+            // convert flat array into 2d pixel coordinates
+            let x = (i % WIDTH as usize) as f32;
+            let y = (i / WIDTH as usize) as f32;
 
-            // pixel[0] = ((x as f32 / WIDTH as f32) * 255.0) as u8;
-            // pixel[1] = ((y as f32 / HEIGHT as f32) * 255.0) as u8;
-            // pixel[2] = (0.25 * 255.0) as u8;
-            // pixel[3] = 255;
-
-            // let rgba = if x == y {
-            //     [0xff, 0xff, 0xff, 0xff]
-            // } else {
-            //     [0x00, 0x00, 0x00, 0xff]
-            // };
-
-            // pixel.copy_from_slice(&rgba);
-
-            let u = x as f32 / WIDTH as f32;
-            let v = y as f32 / HEIGHT as f32;
-            let r = Ray::new(
-                self.origin.clone(),
-                self.lower_left_corner.clone()
-                    + u * self.horizontal.clone()
-                    + v * self.vertical.clone()
-                    - self.origin.clone(),
-            );
-
-            let color = self.ray_color(&r, world);
-            self.write_color(pixel, &color);
+            let mut color = Vector3::new(0.0, 0.0, 0.0);
+            for s in 0..self.samples_per_pixel {
+                // u, v are between 0 and 1 for each dimension through x and y
+                let u = (x + rng.gen::<f32>()) / (WIDTH as f32 - 1.0);
+                let v = (y + rng.gen::<f32>()) / (HEIGHT as f32 - 1.0);
+                let r = camera.get_ray(u, v);
+                color += self.ray_color(&r, objects);
+            }
+            self.write_color(pixel, &color, self.samples_per_pixel);
         }
     }
 
-    fn ray_color(&self, r: &Ray, world: &dyn Hittable) -> Vector3<f32> {
+    fn ray_color(&self, r: &Ray, objects: &dyn Hittable) -> Vector3<f32> {
         let mut rec: HitRecord = HitRecord {
             ..Default::default()
         };
-        if world.hit(r, 0.0, INFINITY, &mut rec) {
+        if objects.hit(r, 0.0, INFINITY, &mut rec) {
             let n = rec.normal + Vector3::new(1.0, 1.0, 1.0); // colour 1, 1, 1
             return 0.5 * n;
         }
@@ -65,10 +51,28 @@ impl World {
         return t * Vector3::new(1.0, 1.0, 1.0) + (1.0 - t) * Vector3::new(0.5, 0.7, 1.0);
     }
 
-    fn write_color(&self, pixel: &mut [u8], color: &Vector3<f32>) {
-        pixel[0] = (color[0] * 255.0) as u8;
-        pixel[1] = (color[1] * 255.0) as u8;
-        pixel[2] = (color[2] * 255.0) as u8;
+    // fn write_color(&self, pixel: &mut [u8], color: &Vector3<f32>) {
+    //     pixel[0] = (color[0] * 255.0) as u8;
+    //     pixel[1] = (color[1] * 255.0) as u8;
+    //     pixel[2] = (color[2] * 255.0) as u8;
+    //     pixel[3] = 255;
+    // }
+
+    fn write_color(&self, pixel: &mut [u8], color: &Vector3<f32>, samples_per_pixel: i32) {
+        let mut r = color[0];
+        let mut g = color[1];
+        let mut b = color[2];
+
+        // Divide the color by the number of samples.
+        let scale = 1.0 / (samples_per_pixel as f32);
+        r *= scale;
+        g *= scale;
+        b *= scale;
+
+        // Write the translated [0,255] value of each color component.
+        pixel[0] = (256.0 * clamp(r, 0.0, 0.999)) as u8;
+        pixel[1] = (256.0 * clamp(g, 0.0, 0.999)) as u8;
+        pixel[2] = (256.0 * clamp(b, 0.0, 0.999)) as u8;
         pixel[3] = 255;
     }
 }
