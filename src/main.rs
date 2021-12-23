@@ -25,6 +25,7 @@ use winit_input_helper::WinitInputHelper;
 static ASPECT_RATIO: f32 = 16.0 / 9.0;
 static WIDTH: u32 = 400;
 static HEIGHT: u32 = (WIDTH as f32 / ASPECT_RATIO) as u32;
+static MAX_DEPTH: i32 = 50;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
@@ -48,7 +49,7 @@ fn main() -> Result<(), Error> {
 
     let viewport_height = 2.0;
     let viewport_width = ASPECT_RATIO * viewport_height;
-    let samples_per_pixel = 5;
+    let samples_per_pixel = 100;
     let camera = Camera::new();
     let world = World { samples_per_pixel };
 
