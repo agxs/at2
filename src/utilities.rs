@@ -17,6 +17,10 @@ pub fn clamp(x: f32, min: f32, max: f32) -> f32 {
     return x;
 }
 
+pub fn unit_vector(v: &Vector3<f32>) -> Vector3<f32> {
+    return v / Matrix::magnitude(&v);
+}
+
 pub fn random_vec3() -> Vector3<f32> {
     let mut rng = rand::thread_rng();
 
@@ -40,5 +44,19 @@ pub fn random_in_unit_sphere() -> Vector3<f32> {
             continue;
         }
         return p;
+    }
+}
+
+pub fn random_unit_vector() -> Vector3<f32> {
+    return unit_vector(&random_in_unit_sphere());
+}
+
+pub fn random_in_hemisphere(normal: &Vector3<f32>) -> Vector3<f32> {
+    let in_unit_sphere = random_in_unit_sphere();
+    if Matrix::dot(&in_unit_sphere, normal) > 0.0 {
+        // In the same hemisphere as the normal
+        return in_unit_sphere;
+    } else {
+        return -in_unit_sphere;
     }
 }

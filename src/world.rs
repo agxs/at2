@@ -1,7 +1,7 @@
 use crate::ray_ext::RayExt;
 use crate::sphere::hit_sphere;
 use crate::surface::{HitRecord, Hittable, HittableList};
-use crate::utilities::{clamp, random_in_unit_sphere};
+use crate::utilities::{clamp, random_in_hemisphere, random_in_unit_sphere, random_unit_vector};
 use crate::{Camera, HEIGHT, MAX_DEPTH, WIDTH};
 use bvh::nalgebra::Point3;
 use bvh::nalgebra::Vector3;
@@ -45,7 +45,7 @@ impl World {
             ..Default::default()
         };
         if objects.hit(r, 0.001, INFINITY, &mut rec) {
-            let target = rec.point + rec.normal + random_in_unit_sphere();
+            let target = rec.point + random_in_hemisphere(&rec.normal);
             let r = Ray::new(rec.point.clone(), target - rec.point.clone());
             // return 0.5 * ray_color(&r, &objects);
             return 0.5 * self.ray_color(&r, objects, depth - 1);
