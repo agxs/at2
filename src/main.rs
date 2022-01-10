@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 mod camera;
+mod material;
 mod ray_ext;
 mod sphere;
 mod surface;
@@ -9,10 +10,11 @@ mod utilities;
 mod world;
 
 use crate::camera::Camera;
+use crate::material::{LambertianMaterial, MetalMaterial};
 use crate::surface::{HittableList, Sphere};
 use crate::world::World;
+use bvh::nalgebra::Point3;
 use bvh::nalgebra::Vector3;
-use bvh::nalgebra::{Point, Point3};
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
@@ -23,7 +25,7 @@ use winit_input_helper::WinitInputHelper;
 
 // Image
 static ASPECT_RATIO: f32 = 16.0 / 9.0;
-static WIDTH: u32 = 400;
+static WIDTH: u32 = 800;
 static HEIGHT: u32 = (WIDTH as f32 / ASPECT_RATIO) as u32;
 static MAX_DEPTH: i32 = 50;
 
@@ -47,21 +49,44 @@ fn main() -> Result<(), Error> {
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
 
-    let viewport_height = 2.0;
-    let viewport_width = ASPECT_RATIO * viewport_height;
     let samples_per_pixel = 100;
     let camera = Camera::new();
     let world = World { samples_per_pixel };
+
+    let material_ground = Box::new(LambertianMaterial {
+        albedo: Vector3::new(0.8, 0.8, 0.0),
+    });
+    let material_center = Box::new(LambertianMaterial {
+        albedo: Vector3::new(0.7, 0.3, 0.3),
+    });
+    let material_left = Box::new(MetalMaterial {
+        albedo: Vector3::new(0.8, 0.8, 0.8),
+    });
+    let material_right = Box::new(MetalMaterial {
+        albedo: Vector3::new(0.8, 0.6, 0.2),
+    });
 
     let objects = HittableList {
         objects: vec![
             Box::new(Sphere {
                 center: Point3::new(0.0, 0.0, -1.0),
                 radius: 0.5,
+                material: material_center,
             }),
             Box::new(Sphere {
                 center: Point3::new(0.0, -100.5, -1.0),
                 radius: 100.0,
+                material: material_ground,
+            }),
+            Box::new(Sphere {
+                center: Point3::new(-1.0, 0.0, -1.0),
+                radius: 0.5,
+                material: material_left,
+            }),
+            Box::new(Sphere {
+                center: Point3::new(1.0, 0.0, -1.0),
+                radius: 0.5,
+                material: material_right,
             }),
         ],
     };

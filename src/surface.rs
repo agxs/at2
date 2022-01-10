@@ -1,31 +1,18 @@
+use crate::material::Material;
 use crate::ray_ext::RayExt;
 use bvh::nalgebra::{Point3, Vector3};
 use bvh::ray::Ray;
 
-#[derive(Copy, Clone)]
-pub struct HitRecord {
+#[derive(Clone)]
+pub struct HitRecord<'m> {
     pub point: Point3<f32>,
     pub normal: Vector3<f32>,
     pub t: f32,
     pub front_face: bool,
+    pub material: &'m Box<dyn Material>,
 }
 
-impl Default for HitRecord {
-    fn default() -> HitRecord {
-        HitRecord {
-            point: Point3::new(0.0, 0.0, 0.0),
-            normal: Vector3::new(0.0, 0.0, 0.0),
-            t: 0.0,
-            front_face: true,
-        }
-    }
-}
-
-impl HitRecord {
-    pub fn new() {
-        Default::default()
-    }
-
+impl HitRecord<'_> {
     pub fn set_face_normal(&mut self, r: &Ray, outward_normal: Vector3<f32>) {
         self.front_face = r.direction.dot(&outward_normal) < 0.0;
         self.normal = if self.front_face {
@@ -37,7 +24,7 @@ impl HitRecord {
 }
 
 pub trait Hittable {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool;
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
 }
 
 pub struct HittableList {
@@ -55,43 +42,42 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool {
-        let mut temp_rec = HitRecord {
-            front_face: false,
-            t: 0.0,
-            point: Point3::new(0.0, 0.0, 0.0),
-            normal: Vector3::new(0.0, 0.0, 0.0),
-        };
-        let mut hit_anything = false;
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        let mut closest_rec = None;
         let mut closest_so_far = t_max;
+        let mut hit_anything = false;
 
         for object in self.objects.iter() {
-            if object.hit(r, t_min, closest_so_far, &mut temp_rec) {
-                hit_anything = true;
-                closest_so_far = temp_rec.t;
-                *rec = temp_rec;
-            }
+            match object.hit(r, t_min, closest_so_far) {
+                Some(temp_rec) => {
+                    hit_anything = true;
+                    closest_so_far = temp_rec.t;
+                    closest_rec = Some(temp_rec);
+                }
+                None => {}
+            };
         }
 
-        return hit_anything;
+        return closest_rec;
     }
 }
 
 pub struct Sphere {
     pub center: Point3<f32>,
     pub radius: f32,
+    pub material: Box<dyn Material>,
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool {
-        let oc = &r.origin - &self.center;
-        let a = r.direction.norm_squared();
-        let half_b = oc.dot(&r.direction);
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        let oc = &ray.origin - &self.center;
+        let a = ray.direction.norm_squared();
+        let half_b = oc.dot(&ray.direction);
         let c = oc.norm_squared() - self.radius * self.radius;
 
         let discriminant = half_b * half_b - a * c;
         if discriminant < 0.0 {
-            return false;
+            return None;
         }
         let sqrt_d = discriminant.sqrt();
 
@@ -100,16 +86,24 @@ impl Hittable for Sphere {
         if root < t_min || t_max < root {
             root = (-half_b + sqrt_d) / a;
             if root < t_min || t_max < root {
-                return false;
+                return None;
             }
         }
 
-        rec.t = root;
-        rec.point = r.at(rec.t);
-        rec.normal = (&rec.point - &self.center) / self.radius;
+        let point = ray.at(root);
+        let normal = (&point - &self.center) / self.radius;
 
-        let outward_normal = (&rec.point - &self.center) / self.radius;
-        rec.set_face_normal(r, outward_normal);
-        return true;
+        let outward_normal = (&point - &self.center) / self.radius;
+
+        let mut hit = HitRecord {
+            point,
+            normal,
+            t: root,
+            front_face: false,
+            material: &self.material,
+        };
+        hit.set_face_normal(ray, outward_normal);
+
+        return Option::Some(hit);
     }
 }

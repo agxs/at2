@@ -1,5 +1,5 @@
 use crate::Vector3;
-use bvh::nalgebra::{magnitude_squared, norm_squared, Matrix};
+use bvh::nalgebra::Matrix;
 use rand::Rng;
 
 static PI: f64 = 3.1415926535897932385;
@@ -19,6 +19,16 @@ pub fn clamp(x: f32, min: f32, max: f32) -> f32 {
 
 pub fn unit_vector(v: &Vector3<f32>) -> Vector3<f32> {
     return v / Matrix::magnitude(&v);
+}
+
+pub fn near_zero(v: &Vector3<f32>) -> bool {
+    // Return true if the vector is close to zero in all dimensions.
+    let s: f32 = 1e-8;
+    return (v[0].abs() < s) && (v[1].abs() < s) && (v[2].abs() < s);
+}
+
+pub fn reflect(v: &Vector3<f32>, n: &Vector3<f32>) -> Vector3<f32> {
+    return v - 2.0 * v.dot(n) * n;
 }
 
 pub fn random_vec3() -> Vector3<f32> {
