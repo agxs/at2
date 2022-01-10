@@ -1,5 +1,7 @@
 use crate::surface::HitRecord;
-use crate::utilities::{near_zero, random_unit_vector, reflect, unit_vector};
+use crate::utilities::{
+    near_zero, random_in_unit_sphere, random_unit_vector, reflect, unit_vector,
+};
 use crate::Vector3;
 use bvh::ray::Ray;
 
@@ -62,6 +64,16 @@ impl Material for LambertianMaterial {
 #[derive(Clone)]
 pub struct MetalMaterial {
     pub albedo: Vector3<f32>,
+    pub fuzz: f32,
+}
+
+impl MetalMaterial {
+    pub fn new(albedo: Vector3<f32>, fuzz: f32) -> MetalMaterial {
+        MetalMaterial {
+            albedo,
+            fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },
+        }
+    }
 }
 
 impl Material for MetalMaterial {
@@ -74,7 +86,7 @@ impl Material for MetalMaterial {
     ) -> bool {
         let reflected = reflect(&unit_vector(&_r_in.direction), &_rec.normal);
         _scattered.origin = _rec.point.clone();
-        _scattered.direction = reflected;
+        _scattered.direction = reflected + self.fuzz * random_in_unit_sphere();
         _attenuation.data = self.albedo.data.clone();
         return _scattered.direction.dot(&_rec.normal) > 0.0;
     }

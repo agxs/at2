@@ -59,12 +59,8 @@ fn main() -> Result<(), Error> {
     let material_center = Box::new(LambertianMaterial {
         albedo: Vector3::new(0.7, 0.3, 0.3),
     });
-    let material_left = Box::new(MetalMaterial {
-        albedo: Vector3::new(0.8, 0.8, 0.8),
-    });
-    let material_right = Box::new(MetalMaterial {
-        albedo: Vector3::new(0.8, 0.6, 0.2),
-    });
+    let material_left = Box::new(MetalMaterial::new(Vector3::new(0.8, 0.8, 0.8), 0.3));
+    let material_right = Box::new(MetalMaterial::new(Vector3::new(0.8, 0.6, 0.2), 1.0));
 
     let objects = HittableList {
         objects: vec![
