@@ -102,7 +102,7 @@ fn main() -> Result<(), Error> {
         }
 
         // Handle input events
-        if input.update(event) {
+        if input.update(&event) {
             // Close events
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
                 *control_flow = ControlFlow::Exit;
@@ -111,7 +111,7 @@ fn main() -> Result<(), Error> {
 
             // Resize the window
             if let Some(size) = input.window_resized() {
-                pixels.resize(size.width, size.height);
+                pixels.resize_surface(size.width, size.height);
             }
 
             // Update internal state and request a redraw
