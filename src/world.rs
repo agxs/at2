@@ -39,7 +39,7 @@ impl World {
             return Vector3::new(0.0, 0.0, 0.0);
         }
 
-        return match objects.hit(r, 0.001, INFINITY) {
+        return match objects.hit(r, 0.001, f32::INFINITY) {
             Some(rec) => {
                 let mut scattered =
                     Ray::new(Point3::new(0.0, 0.0, 0.0), Vector3::new(0.0, 0.0, 0.0));
