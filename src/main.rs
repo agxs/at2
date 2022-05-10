@@ -24,10 +24,10 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 // Image
-static ASPECT_RATIO: f32 = 16.0 / 9.0;
-static WIDTH: u32 = 800;
-static HEIGHT: u32 = (WIDTH as f32 / ASPECT_RATIO) as u32;
-static MAX_DEPTH: i32 = 50;
+const ASPECT_RATIO: f32 = 16.0 / 9.0;
+const WIDTH: u32 = 800;
+const HEIGHT: u32 = (WIDTH as f32 / ASPECT_RATIO) as u32;
+const MAX_DEPTH: i32 = 50;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
