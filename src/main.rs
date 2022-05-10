@@ -119,7 +119,9 @@ fn main() -> Result<(), Error> {
         }
 
         if !render_done {
+            let start = std::time::Instant::now();
             world.draw(pixels.get_frame(), &camera, &objects);
+            println!("Rendering took {}ms", start.elapsed().as_micros() as f64 / 1000.0);
             render_done = true;
         }
     });
