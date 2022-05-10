@@ -16,7 +16,7 @@ pub trait Material: CloneMaterial {
 }
 
 pub trait CloneMaterial {
-    fn clone_material<'a>(&self) -> Box<dyn Material>;
+    fn clone_material(&self) -> Box<dyn Material>;
 }
 
 impl<T> CloneMaterial for T
