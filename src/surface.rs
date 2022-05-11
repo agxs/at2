@@ -9,7 +9,7 @@ pub struct HitRecord<'m> {
     pub normal: Vector3<f32>,
     pub t: f32,
     pub front_face: bool,
-    pub material: &'m Box<dyn Material>,
+    pub material: &'m Box<dyn Material + Sync + Send>,
 }
 
 impl<'m> HitRecord<'m> {
@@ -28,7 +28,7 @@ pub trait Hittable {
 }
 
 pub struct HittableList {
-    pub objects: Vec<Box<dyn Hittable>>,
+    pub objects: Vec<Box<dyn Hittable + Sync + Send>>,
 }
 
 impl HittableList {
@@ -36,7 +36,7 @@ impl HittableList {
         self.objects.clear();
     }
 
-    pub fn add(&mut self, obj: Box<dyn Hittable>) {
+    pub fn add(&mut self, obj: Box<dyn Hittable + Sync + Send>) {
         self.objects.push(obj);
     }
 }
@@ -65,7 +65,7 @@ impl Hittable for HittableList {
 pub struct Sphere {
     pub center: Point3<f32>,
     pub radius: f32,
-    pub material: Box<dyn Material>,
+    pub material: Box<dyn Material + Sync + Send>,
 }
 
 impl Hittable for Sphere {

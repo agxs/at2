@@ -4,7 +4,7 @@ use crate::{Camera, Point3, HEIGHT, MAX_DEPTH, WIDTH};
 use bvh::nalgebra::Vector3;
 use bvh::ray::Ray;
 use rand::Rng;
-use std::f32::INFINITY;
+use rayon::prelude::*;
 
 pub struct World {
     pub samples_per_pixel: i32,
@@ -15,23 +15,25 @@ impl World {
     ///
     /// Assumes the default texture format: [`wgpu::TextureFormat::Rgba8UnormSrgb`]
     pub fn draw(&self, frame: &mut [u8], camera: &Camera, objects: &HittableList) {
-        let mut rng = rand::thread_rng();
+        frame.par_chunks_exact_mut((WIDTH * 4) as usize).enumerate().for_each(|(j, line)| {
+            let mut rng = rand::thread_rng();
 
-        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            // convert flat array into 2d pixel coordinates
-            let x = (i % WIDTH as usize) as f32;
-            let y = (i / WIDTH as usize) as f32;
+            for (i, pixel) in line.chunks_exact_mut(4).enumerate() {
+                // convert flat array into 2d pixel coordinates
+                let x = i as f32;
+                let y = j as f32;
 
-            let mut color = Vector3::new(0.0, 0.0, 0.0);
-            for _s in 0..self.samples_per_pixel {
-                // u, v are between 0 and 1 for each dimension through x and y
-                let u = (x + rng.gen::<f32>()) / (WIDTH as f32 - 1.0);
-                let v = (y + rng.gen::<f32>()) / (HEIGHT as f32 - 1.0);
-                let r = camera.get_ray(u, v);
-                color += self.ray_color(&r, objects, MAX_DEPTH);
+                let mut color = Vector3::new(0.0, 0.0, 0.0);
+                for _s in 0..self.samples_per_pixel {
+                    // u, v are between 0 and 1 for each dimension through x and y
+                    let u = (x + rng.gen::<f32>()) / (WIDTH as f32 - 1.0);
+                    let v = (y + rng.gen::<f32>()) / (HEIGHT as f32 - 1.0);
+                    let r = camera.get_ray(u, v);
+                    color += self.ray_color(&r, objects, MAX_DEPTH);
+                }
+                self.write_color(pixel, &color, self.samples_per_pixel);
             }
-            self.write_color(pixel, &color, self.samples_per_pixel);
-        }
+        });
     }
 
     fn ray_color(&self, r: &Ray, objects: &dyn Hittable, depth: i32) -> Vector3<f32> {
